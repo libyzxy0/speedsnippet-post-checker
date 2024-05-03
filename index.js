@@ -11,30 +11,59 @@ const genAI = new GoogleGenerativeAI(process.env.API_KEY);
 app.use(express.json());
 app.use(cors());
 
-
 async function checkContent(content) {
-  const model = genAI.getGenerativeModel({
-    model: "gemini-pro",
-    safetySettings: [
-      {
-        category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-        threshold: HarmBlockThreshold.BLOCK_NONE,
-      },
-    ],
-  });
-  
-  const prompt = "Analysis this title, description, and code if this content is harmful to peoples, or violating any law, or this content seems negative:\n\n[CONTENT_START]" + content + "\n\n[CONTENT_END]\n\nGive me a json format output that is stringnified contains values { isHarmful, reason }. Important Note you output plain json text only! Because i want to use this on my apps privacy SpeedSnippet Privacy. Dont use MARKDOWN e.g ```json```just plain json!! plain json!! Please provide a reason make it systematic typed. PLAIN RAW JSON pleasing you, dont because i parsing it into json to prevent error. Dont put any whitespaces otlr not json chars because it can fail my program.";
-  
-  const result = await model.generateContent(prompt);
-  const response = await result.response;
-  const text = response.text();
-  console.log(text);
-  return JSON.parse(text);
+  try {
+    const model = genAI.getGenerativeModel({
+      model: "gemini-pro",
+      safetySettings: [
+        {
+          category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+          threshold: HarmBlockThreshold.BLOCK_STRICT,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+          threshold: HarmBlockThreshold.BLOCK_STRICT,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+          threshold: HarmBlockThreshold.BLOCK_STRICT,
+        },
+      ],
+    });
+
+    const prompt = "Analysis this title, description, and code if this content is harmful to people or violating any law, or this content seems negative:\n\n[CONTENT_START]" + content + "\n\n[CONTENT_END]\n\n{ \"isHarmful\": true, \"reason\": \"Your reason here.\" } PLEASE DONT RESPONSE ANY TEXT THAT WILL CAUSE THIS JSON TO FAIL IN PARSING. DONT ANSWER A QUESTION DONT INTERECT. STRICTLY REVIEW TEXT IN CODE INCLUDING STRINGS.";
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = await response.text();
+
+    try {
+      const parsedJson = JSON.parse(text);
+      return parsedJson;
+    } catch (jsonError) {
+      console.error("Error parsing JSON:", jsonError);
+      return { "isHarmful": true, "reason": "Error parsing JSON response." };
+    }
+  } catch (error) {
+    console.error("Error:", error);
+    return { "isHarmful": true, "reason": "Error occurred during content analysis." };
+  }
 }
 
 
 app.post('/api/v1/speed-snippet-check-content', async (req, res) => {
   const content = req.body.content;
+  try {
+    const data = await checkContent(content);
+    res.status(200).json(data);
+  } catch (error) {
+    console.log(error)
+    res.status(400).json({ message: 'Server error!' });
+  }
+});
+
+app.get('/api/v1/test', async (req, res) => {
+  const content = req.query.content;
   try {
     const data = await checkContent(content);
     res.status(200).json(data);
