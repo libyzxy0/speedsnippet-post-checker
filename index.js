@@ -23,7 +23,7 @@ async function checkContent(content) {
     ],
   });
   
-  const prompt = "Analysis if this content is harmful to peoples, or violating any law, or this content seems negative:\n\n[CONTENT_START]" + content + "\n\n[CONTENT_END]\n\nGive me a json format output that is stringnified contains values { isHarmful, reason }. Important Note you output plain json text only! Because i want to use this on my apps privacy SpeedSnippet Privacy. Dont use MARKDOWN e.g ```json```just plain json!! plain json!! Please provide a reason make it systematic typed. PLAIN RAW JSON pleasing you, dont because i parsing it into json to prevent error. Dont put any whitespaces otlr not json chars because it can fail my program.";
+  const prompt = "Analysis this title, description, and code if this content is harmful to peoples, or violating any law, or this content seems negative:\n\n[CONTENT_START]" + content + "\n\n[CONTENT_END]\n\nGive me a json format output that is stringnified contains values { isHarmful, reason }. Important Note you output plain json text only! Because i want to use this on my apps privacy SpeedSnippet Privacy. Dont use MARKDOWN e.g ```json```just plain json!! plain json!! Please provide a reason make it systematic typed. PLAIN RAW JSON pleasing you, dont because i parsing it into json to prevent error. Dont put any whitespaces otlr not json chars because it can fail my program.";
   
   const result = await model.generateContent(prompt);
   const response = await result.response;
@@ -37,7 +37,7 @@ app.post('/api/v1/speed-snippet-check-content', async (req, res) => {
   const content = req.body.content;
   try {
     const data = await checkContent(content);
-    res.status(400).json(data);
+    res.status(200).json(data);
   } catch (error) {
     console.log(error)
     res.status(400).json({ message: 'Server error!' });
